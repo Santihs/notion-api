@@ -1,7 +1,7 @@
 import type { ToDoBlockObjectResponse } from "@notionhq/client";
 import { notion } from "../db/notion.js";
 import { handleNotionError } from "../error/handleError.js";
-import type { Block, HeadingBlock } from "../types.js";
+import type { Block, HeadingBlock, TodoAndChildren } from "../types.js";
 
 export const getPageBlocks = async (pageId: string) => {
   try {
@@ -28,9 +28,10 @@ export const isTodoBlock = (block: any): block is ToDoBlockObjectResponse => {
   return block.type === "to_do";
 };
 
-export const extractTodoBlocks = async (blocks: Block[]) => {
-  console.log("🚀 ~ extractTodoBlocks ~ blocks:", blocks);
-  const blocksToMove: any[] = [];
+export const extractTodoBlocks = async (
+  blocks: Block[]
+): Promise<TodoAndChildren[]> => {
+  const todos: TodoAndChildren[] = [];
   let inTodoSection = false;
 
   for (const block of blocks) {
@@ -69,18 +70,16 @@ export const extractTodoBlocks = async (blocks: Block[]) => {
       // Fetch all children recursively for this block
       if ((block as any).has_children) {
         const children = await getBlockChildren(block.id);
-        console.log("🚀 ~ extractTodoBlocks ~ children:", children);
-        // for (const child of children) {
-        //   blocksToMove.push(child);
-        // }
-        // continue;
+        todos.push({ todos: block, children });
+        continue;
       }
 
-      blocksToMove.push(block);
+      todos.push({ todos: block, children: [] });
     }
   }
 
-  return blocksToMove;
+  console.log("🚀 ~ extractTodoBlocks ~ todos:", todos);
+  return todos;
 };
 
 // Recursively get all children blocks

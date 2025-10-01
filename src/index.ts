@@ -12,7 +12,7 @@ const copyUnfinishedTodos = async (
   console.log("Fetching blocks from source page...");
   const sourceBlocks = await getPageBlocks(sourcePageId);
 
-  console.log("Extracting unfinished TODO blocks with their children...");
+  console.log("Extracting unfinished TODO blocks...");
   const todoBlocks = await extractTodoBlocks(sourceBlocks);
 
   if (todoBlocks.length === 0) {

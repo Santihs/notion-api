@@ -90,3 +90,8 @@ export type HeadingBlock =
       type: "heading_1" | "heading_2" | "heading_3";
       [key: string]: any;
     };
+
+export type TodoAndChildren = {
+  todos: Block;
+  children: Block[];
+};
