@@ -1,14 +1,13 @@
-import type { ToDoBlockObjectResponse } from "@notionhq/client";
 import { notion } from "../db/notion.js";
 import { handleNotionError } from "../error/handleError.js";
-import type { Block, HeadingBlock, TodoAndChildren } from "../types.js";
+import type { Block, NotionDatasource, TodoAndChildren } from "../types.js";
 
 export const getPageBlocks = async (pageId: string) => {
   try {
-    const blocks = await notion.blocks.children.list({
+    const blocks = (await notion.blocks.children.list({
       block_id: pageId,
       page_size: 100,
-    });
+    })) as unknown as NotionDatasource;
     return blocks.results;
   } catch (error) {
     handleNotionError(error);
@@ -16,7 +15,7 @@ export const getPageBlocks = async (pageId: string) => {
   }
 };
 
-export const isHeadingBlock = (block: any): block is HeadingBlock => {
+export const isHeadingBlock = (block: Block) => {
   return (
     block.type === "heading_1" ||
     block.type === "heading_2" ||
@@ -24,7 +23,7 @@ export const isHeadingBlock = (block: any): block is HeadingBlock => {
   );
 };
 
-export const isTodoBlock = (block: any): block is ToDoBlockObjectResponse => {
+export const isTodoBlock = (block: Block) => {
   return block.type === "to_do";
 };
 
@@ -78,7 +77,6 @@ export const extractTodoBlocks = async (
     }
   }
 
-  console.log("🚀 ~ extractTodoBlocks ~ todos:", todos);
   return todos;
 };
 
@@ -87,15 +85,15 @@ const getBlockChildren = async (
   blockId: string
 ): Promise<TodoAndChildren[]> => {
   try {
-    const response = await notion.blocks.children.list({
+    const response = (await notion.blocks.children.list({
       block_id: blockId,
       page_size: 100,
-    });
+    })) as unknown as NotionDatasource;
 
     const children: TodoAndChildren[] = [];
     for (const block of response.results) {
       // If block has children, recursively fetch them
-      if ((block as any).has_children) {
+      if (block.has_children) {
         const nestedChildren = await getBlockChildren(block.id);
         children.push({ todos: block, children: nestedChildren });
       }
