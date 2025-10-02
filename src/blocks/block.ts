@@ -67,7 +67,7 @@ export const extractTodoBlocks = async (
       }
 
       // Fetch all children recursively for this block
-      if ((block as any).has_children) {
+      if (block.has_children) {
         const children = await getBlockChildren(block.id);
         todos.push({ todos: block, children });
         continue;
