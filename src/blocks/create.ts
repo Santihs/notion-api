@@ -1,7 +1,6 @@
 import { notion } from "../db/notion.js";
 import { handleNotionError } from "../error/handleError.js";
 import type { TodoAndChildren } from "../types.js";
-import { getPageBlocks } from "./block.js";
 
 export const insertBlocksBefore = async (
   pageId: string,
@@ -10,26 +9,12 @@ export const insertBlocksBefore = async (
 ) => {
   if (blocks.length === 0) return;
 
-  // If no "To do" heading found, append to the end of the page
   if (!beforeBlockId) {
     await insertBlocks(blocks, pageId);
     return;
   }
 
-  // Insert blocks before the "To do" heading
-  const allBlocks = await getPageBlocks(pageId);
-  const targetIndex = allBlocks.findIndex((b) => b.id === beforeBlockId);
-
-  if (targetIndex === 0) {
-    // If "To do" is the first block, we need to append to page and reorder
-    await insertBlocks(blocks, pageId);
-  } else if (targetIndex > 0) {
-    const previousBlock = allBlocks[targetIndex - 1];
-    if (previousBlock) {
-      const previousBlockId = previousBlock.id;
-      await insertBlocks(blocks.reverse(), previousBlockId);
-    }
-  }
+  await insertBlocksAfter(blocks, beforeBlockId, pageId);
 };
 
 const insertBlocks = async (blocks: TodoAndChildren[], pageId: string) => {
@@ -40,6 +25,32 @@ const insertBlocks = async (blocks: TodoAndChildren[], pageId: string) => {
         children: [cloneBlockForInsertion(todos)],
       });
       await insertChildrenBlocks(result.results[0]?.id, children);
+    }
+  } catch (error) {
+    handleNotionError(error);
+  }
+};
+
+const insertBlocksAfter = async (
+  blocks: TodoAndChildren[],
+  afterBlockId: string,
+  pageId: string
+) => {
+  try {
+    let previousBlockId = afterBlockId;
+
+    for (const { children, todos } of blocks) {
+      const result = await notion.blocks.children.append({
+        block_id: pageId,
+        children: [cloneBlockForInsertion(todos)],
+        after: previousBlockId,
+      });
+
+      const newBlockId = result.results[0]?.id;
+      if (newBlockId) {
+        await insertChildrenBlocks(newBlockId, children);
+        previousBlockId = newBlockId;
+      }
     }
   } catch (error) {
     handleNotionError(error);
@@ -61,15 +72,31 @@ const cloneBlockForInsertion = (block: any): any => {
 
 const insertChildrenBlocks = async (
   parentBlockId: string | undefined,
-  children: any[]
+  blocks: TodoAndChildren[]
 ) => {
   if (!parentBlockId) return;
-  if (children.length === 0) return;
+  if (blocks.length === 0) return;
 
-  for (const child of children) {
-    await notion.blocks.children.append({
+  for (const { todos, children } of blocks) {
+    // Skip unsupported block types
+    if (isUnsupportedBlockType((todos as any).type)) {
+      console.log(`Skipping unsupported block type: ${(todos as any).type}`);
+      continue;
+    }
+
+    const result = await notion.blocks.children.append({
       block_id: parentBlockId,
-      children: [cloneBlockForInsertion(child)],
+      children: [cloneBlockForInsertion(todos)],
     });
+
+    const newBlockId = result.results[0]?.id;
+    if (newBlockId) {
+      await insertChildrenBlocks(newBlockId, children);
+    }
   }
+};
+
+const isUnsupportedBlockType = (type: string): boolean => {
+  const unsupportedTypes = ["image", "file", "video", "pdf", "audio"];
+  return unsupportedTypes.includes(type);
 };

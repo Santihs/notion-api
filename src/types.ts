@@ -93,5 +93,5 @@ export type HeadingBlock =
 
 export type TodoAndChildren = {
   todos: Block;
-  children: Block[];
+  children: TodoAndChildren[];
 };

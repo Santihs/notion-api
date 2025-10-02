@@ -6,8 +6,7 @@ export const findTodoHeadingId = async (pageId: string) => {
   for (const block of blocks) {
     const blockType = (block as any).type;
     if (isHeadingBlock(block)) {
-      const headingText =
-        (block as any)[blockType]?.rich_text?.[0]?.plain_text || "";
+      const headingText = block[blockType]?.rich_text?.[0]?.plain_text || "";
       if (headingText.toLowerCase().includes("to do")) {
         return block.id;
       }

@@ -83,22 +83,24 @@ export const extractTodoBlocks = async (
 };
 
 // Recursively get all children blocks
-const getBlockChildren = async (blockId: string): Promise<any[]> => {
+const getBlockChildren = async (
+  blockId: string
+): Promise<TodoAndChildren[]> => {
   try {
     const response = await notion.blocks.children.list({
       block_id: blockId,
       page_size: 100,
     });
 
-    const children: any[] = [];
+    const children: TodoAndChildren[] = [];
     for (const block of response.results) {
-      children.push(block);
-
       // If block has children, recursively fetch them
       if ((block as any).has_children) {
         const nestedChildren = await getBlockChildren(block.id);
-        (block as any).children = nestedChildren;
+        children.push({ todos: block, children: nestedChildren });
       }
+
+      children.push({ todos: block, children: [] });
     }
 
     return children;
