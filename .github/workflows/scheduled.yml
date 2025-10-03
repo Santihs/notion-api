@@ -1,0 +1,65 @@
+name: Scheduled Task - Test, Build & Run
+
+on:
+  # Ejecutar manualmente desde GitHub UI
+  workflow_dispatch:
+
+  # Ejecutar automáticamente cada día a la 1 AM UTC-04 (5 AM UTC)
+  schedule:
+    - cron: "0 5 * * *" # Todos los días a las 5:00 AM UTC (1:00 AM UTC-04)
+    # Sintaxis cron: minuto hora día mes día-semana
+    # Ejemplos:
+    # '0 */6 * * *'   -> Cada 6 horas
+    # '0 9,17 * * *'  -> 9 AM y 5 PM
+    # '0 9 * * 1-5'   -> 9 AM, solo días de semana
+
+  # Ejecutar en cada push (opcional)
+  push:
+    branches: [main]
+
+  # Ejecutar en cada PR (opcional)
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-build-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout del código
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.20.0"
+          cache: "npm"
+
+      # 3. Instalar dependencias
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Ejecutar tests
+      - name: Run tests
+        run: npm test
+
+      # 5. Build del proyecto
+      - name: Build project
+        run: npm run build
+
+      # 6. Ejecutar la tarea
+      - name: Run task
+        env:
+          NOTION_KEY: ${{ secrets.NOTION_KEY }}
+          DATABASE_ID: ${{ secrets.DATABASE_ID }}
+        run: npm start
+
+      # 7. (Opcional) Subir artefactos si el build falla
+      - name: Upload build artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: dist/
