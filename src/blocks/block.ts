@@ -52,18 +52,8 @@ export const extractTodoBlocks = async (
     // Collect blocks in the TODO section
     if (inTodoSection) {
       // Skip completed TODOs
-      if (isTodoBlock(block) && block.to_do?.checked) {
+      if (skipTodoBlock(block)) {
         continue;
-      }
-
-      // Skip strikethrough TODOs
-      if (isTodoBlock(block)) {
-        const hasStrikethrough = block.to_do?.rich_text?.some(
-          (text: any) => text.annotations?.strikethrough
-        );
-        if (hasStrikethrough) {
-          continue;
-        }
       }
 
       // Fetch all children recursively for this block
@@ -78,6 +68,17 @@ export const extractTodoBlocks = async (
   }
 
   return todos;
+};
+
+const skipTodoBlock = (block: Block) => {
+  if (!isTodoBlock(block)) return false;
+
+  if (block.to_do?.checked) return true;
+
+  const hasStrikethrough = block.to_do?.rich_text?.some(
+    (text: any) => text.annotations?.strikethrough
+  );
+  return hasStrikethrough ?? false;
 };
 
 // Recursively get all children blocks
@@ -96,6 +97,7 @@ const getBlockChildren = async (
       if (block.has_children) {
         const nestedChildren = await getBlockChildren(block.id);
         children.push({ todos: block, children: nestedChildren });
+        continue;
       }
 
       children.push({ todos: block, children: [] });
