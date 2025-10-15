@@ -6,7 +6,7 @@ export const updatePageStatus = async (pageId: string, status: string) => {
     await notion.pages.update({
       page_id: pageId,
       properties: {
-        Tags: {
+        Status: {
           status: {
             name: status,
           },

@@ -28,6 +28,9 @@ const copyUnfinishedTodos = async (
   console.log("Inserting blocks into target page...");
   await insertBlocksBefore(targetPageId, todoHeadingId, todoBlocks);
 
+  console.log("Updating target page status to 'In Progress'...");
+  await updatePageStatus(targetPageId, "In Progress");
+
   console.log("Updating source page status to 'Done'...");
   await updatePageStatus(sourcePageId, "Done");
 
